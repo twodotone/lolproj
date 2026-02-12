@@ -24,7 +24,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-league = st.session_state.get("selected_league", "LCS")
+# --- Sidebar: League Selector ---
+all_leagues_list = get_leagues()
+default_idx = all_leagues_list.index("LCS") if "LCS" in all_leagues_list else 0
+league = st.sidebar.selectbox(
+    "🌍 Select League", all_leagues_list, index=default_idx, key="standings_league"
+)
+st.session_state["selected_league"] = league
 
 st.markdown('<h1 class="main-title">🏆 STANDINGS</h1>', unsafe_allow_html=True)
 st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)

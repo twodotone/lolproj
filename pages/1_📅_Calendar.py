@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timezone
-from src.data_loader import get_schedule, get_teams, get_team_games
+from src.data_loader import get_schedule, get_teams, get_team_games, get_leagues
 from src.schedule_fetcher import get_upcoming_matches, get_available_leagues, normalize_team_name
 from src.elo import compute_all_elo
 from src.projection import project_matchup
@@ -38,7 +38,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-league = st.session_state.get("selected_league", "LCS")
+# --- Sidebar: League Selector ---
+all_leagues = get_leagues()
+default_idx = all_leagues.index("LCS") if "LCS" in all_leagues else 0
+league = st.sidebar.selectbox(
+    "🌍 Select League", all_leagues, index=default_idx, key="cal_league"
+)
+st.session_state["selected_league"] = league
 
 st.markdown(f'<h1 class="main-title">📅 {league} SCHEDULE</h1>', unsafe_allow_html=True)
 st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
