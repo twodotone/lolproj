@@ -97,19 +97,43 @@ def download_from_gdrive(force: bool = False) -> bool:
             log.error("gdown folder download failed: %s", exc)
             return False
 
-        # Find the CSV in the downloaded files
-        downloaded = None
+        # Find the correct CSV — the folder has multiple years.
+        # Priority: 1) exact filename match, 2) current-year match, 3) newest by name
+        import datetime as _dt
+        current_year = str(_dt.date.today().year)
+
+        candidates = []
         for root_dir, _dirs, files in os.walk(tmp):
             for f in files:
                 if f.endswith(".csv"):
-                    downloaded = os.path.join(root_dir, f)
-                    break
-            if downloaded:
-                break
+                    candidates.append(os.path.join(root_dir, f))
 
-        if downloaded is None:
+        if not candidates:
             log.error("No CSV found in downloaded folder contents.")
             return False
+
+        # Try exact filename match first
+        downloaded = None
+        for c in candidates:
+            if os.path.basename(c) == CSV_FILENAME:
+                downloaded = c
+                break
+
+        # Fall back to any CSV starting with current year
+        if downloaded is None:
+            for c in candidates:
+                if os.path.basename(c).startswith(current_year):
+                    downloaded = c
+                    break
+
+        # Last resort: pick the newest by filename (years sort naturally)
+        if downloaded is None:
+            candidates.sort(key=lambda p: os.path.basename(p), reverse=True)
+            downloaded = candidates[0]
+            log.warning(
+                "No exact or year match found — using newest CSV: %s",
+                os.path.basename(downloaded),
+            )
 
         shutil.copy2(downloaded, CSV_PATH)
         log.info("✅ CSV synced successfully → %s", CSV_PATH)
