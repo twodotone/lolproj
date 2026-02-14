@@ -10,6 +10,7 @@ from src.data_loader import get_schedule, get_teams, get_team_games, get_leagues
 from src.schedule_fetcher import get_upcoming_matches, get_available_leagues, normalize_team_name
 from src.elo import compute_all_elo
 from src.projection import project_matchup
+from src.polymarket import get_team_odds, format_trend
 
 st.set_page_config(page_title="Calendar | LoL Hub", page_icon="📅", layout="wide")
 
@@ -35,6 +36,9 @@ st.markdown("""
         border: 1px solid #FF4655; border-radius: 20px; padding: 3px 12px;
         font-size: 0.8rem; color: #FF4655; font-weight: 600; animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pm-badge { display: inline-block; background: linear-gradient(135deg, #6C5CE722, #6C5CE744);
+        border: 1px solid #6C5CE7; border-radius: 20px; padding: 3px 12px;
+        font-size: 0.75rem; color: #6C5CE7; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -201,6 +205,64 @@ with tab_upcoming:
                                     st.markdown(f"**{team_b}**: {result['playstyle_b']}")
                                     st.markdown(f"✅ {', '.join(result['strengths_b'])}")
                                     st.markdown(f"⚠️ {', '.join(result['weaknesses_b'])}")
+
+                                # ---- POLYMARKET SEASON ODDS ----
+                                pm = get_team_odds(norm_a, norm_b)
+                                if pm:
+                                    st.markdown("---")
+                                    st.markdown('<span class="pm-badge">📈 Polymarket Season Odds</span>',
+                                                unsafe_allow_html=True)
+                                    st.caption(f"Market implied probability of winning {pm['league']} 2026 season")
+
+                                    pm_c1, pm_c2 = st.columns(2)
+                                    odds_a = pm.get("team_a")
+                                    odds_b = pm.get("team_b")
+
+                                    with pm_c1:
+                                        if odds_a:
+                                            st.metric(
+                                                f"🏆 {team_a}",
+                                                f"{odds_a['odds']:.1%}",
+                                                delta=format_trend(odds_a['change_1w']),
+                                            )
+                                            st.caption(f"Vol: ${odds_a['volume']:,.0f} · Bid/Ask: {odds_a['best_bid']:.2f}/{odds_a['best_ask']:.2f}")
+                                        else:
+                                            st.caption(f"No Polymarket data for {team_a}")
+
+                                    with pm_c2:
+                                        if odds_b:
+                                            st.metric(
+                                                f"🏆 {team_b}",
+                                                f"{odds_b['odds']:.1%}",
+                                                delta=format_trend(odds_b['change_1w']),
+                                            )
+                                            st.caption(f"Vol: ${odds_b['volume']:,.0f} · Bid/Ask: {odds_b['best_bid']:.2f}/{odds_b['best_ask']:.2f}")
+                                        else:
+                                            st.caption(f"No Polymarket data for {team_b}")
+
+                                    # Model vs Market comparison
+                                    if odds_a and odds_b:
+                                        total_pm = odds_a['odds'] + odds_b['odds']
+                                        if total_pm > 0:
+                                            # Normalize the two teams' season odds to a head-to-head probability
+                                            pm_h2h_a = odds_a['odds'] / total_pm
+                                            pm_h2h_b = odds_b['odds'] / total_pm
+                                            model_diff = prob_a - pm_h2h_a
+
+                                            st.markdown("**🔄 Model vs Market (head-to-head implied)**")
+                                            mv1, mv2, mv3 = st.columns(3)
+                                            with mv1:
+                                                st.metric("Our Model", f"{prob_a:.1%} / {prob_b:.1%}")
+                                            with mv2:
+                                                st.metric("Market Implied", f"{pm_h2h_a:.1%} / {pm_h2h_b:.1%}")
+                                            with mv3:
+                                                if abs(model_diff) > 0.05:
+                                                    edge_team = team_a if model_diff > 0 else team_b
+                                                    st.metric("💡 Value Edge", edge_team,
+                                                              delta=f"{abs(model_diff):.1%} vs market")
+                                                else:
+                                                    st.metric("💡 Value Edge", "Aligned",
+                                                              delta="Model ≈ Market")
                         else:
                             missing = []
                             if not has_a:

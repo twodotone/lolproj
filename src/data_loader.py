@@ -39,6 +39,12 @@ def load_raw_data(_mtime: float | None = None) -> pd.DataFrame:
 
 def get_data() -> pd.DataFrame:
     """Convenience wrapper that passes mtime for auto-refresh."""
+    # Auto-sync from Google Drive if the CSV is stale (>24 h old)
+    try:
+        from src.gdrive_sync import sync_if_stale
+        sync_if_stale()
+    except Exception:
+        pass  # Non-fatal — just use the existing file
     return load_raw_data(_mtime=_csv_mtime())
 
 
