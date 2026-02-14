@@ -240,9 +240,10 @@ def get_champion_stats(team: str) -> pd.DataFrame:
 # Data freshness
 # ---------------------------------------------------------------------------
 def get_data_freshness() -> str:
-    """Human-readable timestamp of when the CSV was last modified."""
+    """Human-readable timestamp of when the CSV was last modified (MST)."""
     mtime = _csv_mtime()
     if mtime == 0:
         return "Unknown"
-    from datetime import datetime
-    return datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+    from datetime import datetime, timezone, timedelta
+    mst = timezone(timedelta(hours=-7))
+    return datetime.fromtimestamp(mtime, tz=mst).strftime("%Y-%m-%d %H:%M:%S MST")

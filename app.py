@@ -4,6 +4,7 @@ Run with:  streamlit run app.py
 """
 
 import streamlit as st
+import pandas as pd
 from src.data_loader import get_data, get_leagues, get_data_freshness
 from src.elo import compute_all_elo
 from src.projection import global_power_rankings
@@ -191,10 +192,26 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 st.markdown('<h1 class="main-title">⚔️ LOL ESPORTS HUB</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">ORACLE\'S ELIXIR ANALYTICS & PROJECTION ENGINE</p>', unsafe_allow_html=True)
+
+# Data freshness banner
+df = get_data()
+_latest_game = df["date"].max()
+_latest_game_str = _latest_game.strftime("%B %d, %Y") if pd.notna(_latest_game) else "Unknown"
+st.markdown(
+    f'<div style="text-align:center; padding:10px 20px; margin-bottom:20px; '
+    f'border:1px solid #C89B3C55; border-radius:8px; '
+    f'background:linear-gradient(145deg, #1E2D3D 0%, #0D1B2A 100%);">'
+    f'<span style="color:#A09B8C; font-size:0.85rem; letter-spacing:1px;">📂 DATA THROUGH</span> '
+    f'<span style="color:#C89B3C; font-family:Orbitron,sans-serif; font-weight:700; font-size:1rem;">'
+    f'{_latest_game_str}</span>'
+    f'<span style="color:#5B5A56; font-size:0.75rem; margin-left:16px;">CSV updated: {get_data_freshness()}</span>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
+
 st.markdown('<hr class="gold-divider">', unsafe_allow_html=True)
 
 # Quick stats
-df = get_data()
 team_df = df[df["position"] == "team"]
 
 col1, col2, col3, col4 = st.columns(4)
